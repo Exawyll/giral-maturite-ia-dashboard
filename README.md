@@ -10,6 +10,24 @@ Dashboard d'analyse des résultats du questionnaire de maturité IA pour les DSI
 - **Distribution des niveaux** : Répartition N0-N4 par axe
 - **Matrice de corrélation** : Analyse des liens entre les différents axes
 - **Forces et faiblesses** : Regroupement thématique des réponses qualitatives
+- **Infobulles explicatives** : Chaque KPI et graphique dispose d'une icône (?) affichant une explication sur les données et leur calcul
+
+## Guide des infobulles
+
+Le dashboard intègre des infobulles contextuelles pour améliorer la compréhension des données :
+
+| Élément | Explication fournie |
+|---------|---------------------|
+| Réponses totales | Nombre d'entreprises ayant complété le questionnaire |
+| Maturité moyenne | Score moyen sur l'ensemble des 5 axes (échelle 0-4) |
+| Axe le plus mature | Axe ayant la moyenne la plus élevée |
+| Axe à améliorer | Axe nécessitant des efforts prioritaires |
+| Vue Radar | Représentation visuelle de la maturité par axe |
+| Comparaison par groupe | Écarts de maturité selon le critère de regroupement |
+| Distribution des niveaux | Répartition des réponses N0 à N4 par axe |
+| Matrice de corrélation | Coefficient de Pearson entre paires d'axes |
+| Corrélations significatives | Paires d'axes avec coefficient > 0.5 |
+| Forces et Faiblesses | Analyse qualitative des réponses textuelles |
 
 ## Axes analysés
 
