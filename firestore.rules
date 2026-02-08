@@ -1,0 +1,14 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Collection des réponses au questionnaire
+    match /survey_responses/{document} {
+      // Lecture publique : les données sont anonymisées et peuvent être consultées
+      allow read: if true;
+      
+      // Écriture interdite : seuls les scripts d'administration peuvent écrire
+      // Les données sont uploadées via le script local upload_data.py
+      allow write: if false;
+    }
+  }
+}

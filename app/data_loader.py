@@ -1,12 +1,11 @@
 """
-Module de chargement et traitement des données Excel
+Module de chargement et traitement des données depuis Firestore
 """
 import pandas as pd
 import numpy as np
-import re
-import os
+from google.cloud import firestore
 from functools import lru_cache
-from typing import Dict, List, Any, Tuple
+from typing import Dict, List, Any
 
 # Définition des axes de maturité
 AXES = [
@@ -31,58 +30,67 @@ AXES_SHORT = [
     "Économie"
 ]
 
-
-def get_excel_path() -> str:
-    """Retourne le chemin vers le fichier Excel"""
-    # Try multiple possible directories
-    possible_dirs = [
-        os.path.join(os.path.dirname(os.path.dirname(__file__)), ".docs"),
-        "/app/.docs",
-        os.path.join(os.getcwd(), ".docs"),
-    ]
-    
-    # Look for any .xlsx file in the .docs directory
-    for docs_dir in possible_dirs:
-        if os.path.isdir(docs_dir):
-            try:
-                files = os.listdir(docs_dir)
-                xlsx_files = [f for f in files if f.endswith('.xlsx')]
-                if xlsx_files:
-                    path = os.path.join(docs_dir, xlsx_files[0])
-                    print(f"[DATA] Found Excel file at: {path}")
-                    return path
-            except Exception as e:
-                print(f"[DATA] Error scanning {docs_dir}: {e}")
-    
-    # Log for debugging
-    print(f"[DATA] Current working directory: {os.getcwd()}")
-    print(f"[DATA] __file__ location: {__file__}")
-    print(f"[DATA] Checked directories: {possible_dirs}")
-    
-    # Fallback path
-    return "/app/.docs/data.xlsx"
+COLLECTION_NAME = "survey_responses"
 
 
 @lru_cache(maxsize=1)
 def load_data() -> pd.DataFrame:
-    """Charge les données depuis le fichier Excel"""
-    excel_path = get_excel_path()
+    """
+    Charge les données depuis Firestore et les convertit en DataFrame pandas
+    Les données sont mises en cache pour optimiser les performances
+    """
+    print("[DATA] Chargement des données depuis Firestore...")
     
-    if not os.path.exists(excel_path):
-        raise FileNotFoundError(f"Excel file not found at: {excel_path}. Available files in /app: {os.listdir('/app') if os.path.exists('/app') else 'N/A'}")
+    # Initialiser le client Firestore (utilise les credentials par défaut de Cloud Run)
+    db = firestore.Client()
     
-    df = pd.read_excel(excel_path, sheet_name="Données")
+    # Récupérer tous les documents de la collection
+    docs = db.collection(COLLECTION_NAME).stream()
+    
+    # Transformer les documents Firestore en liste de dictionnaires
+    rows = []
+    for doc in docs:
+        data = doc.to_dict()
+        
+        # Construire une ligne au format attendu par le reste du code
+        row = {}
+        
+        # Métadonnées
+        metadata = data.get("metadata", {})
+        row["Dans quel groupe ton entreprise se situe-t-elle ?"] = metadata.get("groupe", "")
+        row["Tranche de chiffre d'affaires"] = metadata.get("ca", "")
+        row["Effectif de l'entreprise"] = metadata.get("effectif_entreprise", "")
+        row["Effectif de la DSI"] = metadata.get("effectif_dsi", "")
+        
+        # Données par axe
+        axes_data = data.get("axes", {})
+        for axe, short_name in zip(AXES, AXES_SHORT):
+            axe_info = axes_data.get(short_name, {})
+            
+            # Colonnes format original
+            row[f"{axe} : le niveau de ton entreprise"] = axe_info.get("niveau_raw")
+            row[f"{axe} : une force ou une initiative réussie"] = axe_info.get("force")
+            row[f"{axe} : une faiblesse ou un frein"] = axe_info.get("faiblesse")
+            
+            # Colonne niveau pré-extrait
+            row[f"{axe}_niveau"] = axe_info.get("niveau")
+        
+        rows.append(row)
+    
+    # Créer le DataFrame
+    df = pd.DataFrame(rows)
+    
+    print(f"[DATA] ✓ {len(df)} réponses chargées depuis Firestore")
+    
     return df
 
 
-def extract_level(text: str) -> int:
-    """Extrait le niveau de maturité (0-4) d'une chaîne de caractères"""
-    if pd.isna(text) or not isinstance(text, str):
-        return None
-    match = re.match(r'N(\d)', str(text))
-    if match:
-        return int(match.group(1))
-    return None
+def get_processed_data() -> pd.DataFrame:
+    """
+    Retourne les données avec les niveaux extraits pour chaque axe
+    Note: Les niveaux sont déjà extraits lors du chargement depuis Firestore
+    """
+    return load_data().copy()
 
 
 def get_column_mapping() -> Dict[str, Dict[str, str]]:
@@ -99,22 +107,6 @@ def get_column_mapping() -> Dict[str, Dict[str, str]]:
     return mapping
 
 
-def get_processed_data() -> pd.DataFrame:
-    """
-    Retourne les données avec les niveaux extraits pour chaque axe
-    """
-    df = load_data().copy()
-    mapping = get_column_mapping()
-    
-    # Extraire les niveaux numériques
-    for axe in AXES:
-        col_niveau = mapping[axe]["niveau"]
-        if col_niveau in df.columns:
-            df[f"{axe}_niveau"] = df[col_niveau].apply(extract_level)
-    
-    return df
-
-
 def get_statistics_by_group(group_col: str) -> Dict[str, Any]:
     """
     Calcule les statistiques de maturité par groupe
@@ -125,10 +117,9 @@ def get_statistics_by_group(group_col: str) -> Dict[str, Any]:
     df = get_processed_data()
     
     result = {}
-    niveau_cols = [f"{axe}_niveau" for axe in AXES]
     
     for group_value, group_df in df.groupby(group_col):
-        if pd.isna(group_value):
+        if pd.isna(group_value) or group_value == "":
             continue
         
         stats = {"count": len(group_df), "axes": {}}
@@ -186,13 +177,7 @@ def get_correlations() -> Dict[str, Any]:
     # Matrice de corrélation
     corr_df = df[existing_cols].corr()
     
-    # Renommer les colonnes/index avec les noms courts (only for existing columns)
-    existing_short_names = []
-    for axe, short in zip(AXES, AXES_SHORT):
-        col = f"{axe}_niveau"
-        if col in existing_cols:
-            existing_short_names.append(short)
-    
+    # Renommer les colonnes/index avec les noms courts
     rename_dict = {f"{axe}_niveau": short for axe, short in zip(AXES, AXES_SHORT) if f"{axe}_niveau" in existing_cols}
     corr_df = corr_df.rename(columns=rename_dict, index=rename_dict)
     
@@ -282,6 +267,8 @@ def extract_themes(texts: List[str]) -> Dict[str, List[str]]:
     themes["Autres"] = []
     
     for text in texts:
+        if not text or not isinstance(text, str):
+            continue
         text_lower = text.lower()
         matched = False
         
@@ -303,8 +290,8 @@ def get_filters_options() -> Dict[str, List[str]]:
     df = load_data()
     
     return {
-        "groupes": sorted(df["Dans quel groupe ton entreprise se situe-t-elle ?"].dropna().unique().tolist()),
-        "tranches_ca": sorted(df["Tranche de chiffre d'affaires"].dropna().unique().tolist()),
-        "effectifs_entreprise": sorted(df["Effectif de l'entreprise"].dropna().unique().tolist()),
-        "effectifs_dsi": sorted(df["Effectif de la DSI"].dropna().unique().tolist())
+        "groupes": sorted([x for x in df["Dans quel groupe ton entreprise se situe-t-elle ?"].dropna().unique().tolist() if x]),
+        "tranches_ca": sorted([x for x in df["Tranche de chiffre d'affaires"].dropna().unique().tolist() if x]),
+        "effectifs_entreprise": sorted([x for x in df["Effectif de l'entreprise"].dropna().unique().tolist() if x]),
+        "effectifs_dsi": sorted([x for x in df["Effectif de la DSI"].dropna().unique().tolist() if x])
     }
