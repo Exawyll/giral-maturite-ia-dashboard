@@ -177,6 +177,10 @@ def get_correlations() -> Dict[str, Any]:
     # Matrice de corrélation
     corr_df = df[existing_cols].corr()
     
+    # Remplacer NaN et Infinity par 0 pour éviter les erreurs JSON
+    corr_df = corr_df.fillna(0)
+    corr_df = corr_df.replace([np.inf, -np.inf], 0)
+    
     # Renommer les colonnes/index avec les noms courts
     rename_dict = {f"{axe}_niveau": short for axe, short in zip(AXES, AXES_SHORT) if f"{axe}_niveau" in existing_cols}
     corr_df = corr_df.rename(columns=rename_dict, index=rename_dict)
