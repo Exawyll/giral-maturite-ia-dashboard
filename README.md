@@ -40,6 +40,52 @@ Le dashboard intègre des infobulles contextuelles pour améliorer la compréhen
 7. Cas d'usage – valeur (économies + création)
 8. Économie et mesure de la valeur (KPIs/ROI/TCO)
 
+## 📊 Gestion des données
+
+Les données du questionnaire sont stockées dans **Cloud Firestore** et complètement séparées du code de l'application.
+
+### Architecture
+
+```
+Fichier Excel (local)  →  Script Python  →  Firestore  →  Application
+    .docs/              upload_data.py    (cloud)      (Cloud Run)
+```
+
+### Mettre à jour les données
+
+1. **Placer le fichier Excel** dans `.docs/` (en local uniquement, jamais commité)
+2. **Exécuter le script de migration** :
+   ```bash
+   python scripts/upload_data.py
+   ```
+3. Les données sont uploadées sur Firestore et **immédiatement accessibles** par l'application
+
+### Avantages
+
+- ✅ **Séparation** : Données et code complètement découplés
+- ✅ **Mise à jour** : Modifier les données sans redéployer l'application
+- ✅ **Sécurité** : Pas de fichier sensible dans Git
+- ✅ **Gratuit** : Firestore offre 1 GB gratuit (largement suffisant)
+- ✅ **Performance** : Données en cache, latence < 50ms
+
+### Première configuration (une seule fois)
+
+```bash
+# 1. Créer la base Firestore
+gcloud firestore databases create --location=europe-west1
+
+# 2. Ajouter Firebase au projet GCP (une seule fois)
+firebase projects:addfirebase maturite-ia-dashboard
+
+# 3. Déployer les règles de sécurité
+firebase deploy --only firestore:rules
+
+# 4. Uploader les premières données
+python scripts/upload_data.py
+```
+
+Pour plus de détails, voir [scripts/README.md](scripts/README.md).
+
 ## Installation locale
 
 ```bash
@@ -50,11 +96,16 @@ source venv/bin/activate
 # Installer les dépendances
 pip install -r requirements.txt
 
+# S'authentifier avec GCP pour accéder à Firestore
+gcloud auth application-default login
+
 # Lancer l'application
 uvicorn app.main:app --reload --port 8080
 ```
 
 Ouvrir http://localhost:8080 dans le navigateur.
+
+**Note** : L'application charge les données depuis Firestore. Assurez-vous que les données ont été uploadées avec `python scripts/upload_data.py`.
 
 ## Déploiement sur Google Cloud Run
 
@@ -126,16 +177,20 @@ giral-recap/
 │   │   ├── __init__.py
 │   │   └── analysis.py      # API endpoints
 │   ├── templates/
-│   │   └── index.html       # Dashboard HTML
+│   │   └── index.html       # Dashboard HTML avec infobulles
 │   ├── static/              # Fichiers statiques
 │   ├── __init__.py
 │   ├── main.py              # Application FastAPI
-│   └── data_loader.py       # Chargement et analyse des données
-├── .docs/
-│   └── Matrice de maturité data seules.xlsx
-├── Dockerfile
-├── cloudbuild.yaml
-├── requirements.txt
+│   └── data_loader.py       # Chargement depuis Firestore
+├── scripts/
+│   ├── upload_data.py       # Migration Excel → Firestore
+│   └── README.md            # Documentation des scripts
+├── .docs/                   # Local uniquement (dans .gitignore)
+│   └── *.xlsx               # Fichier Excel source
+├── firestore.rules          # Règles de sécurité Firestore
+├── Dockerfile               # Build sans dépendance aux données
+├── cloudbuild.yaml          # Configuration Cloud Build
+├── requirements.txt         # Dépendances Python (avec Firestore)
 └── README.md
 ```
 
@@ -143,4 +198,6 @@ giral-recap/
 
 - **Backend** : FastAPI (Python 3.11)
 - **Frontend** : HTML5, Bootstrap 5, Chart.js, Plotly.js
+- **Base de données** : Cloud Firestore (NoSQL)
 - **Déploiement** : Docker, Google Cloud Run
+- **CI/CD** : Cloud Build

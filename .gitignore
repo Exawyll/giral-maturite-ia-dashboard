@@ -12,6 +12,7 @@ env/
 .eggs/
 dist/
 build/
+.docs/
 
 # IDE
 .vscode/
