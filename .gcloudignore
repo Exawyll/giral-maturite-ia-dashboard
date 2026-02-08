@@ -1,0 +1,30 @@
+# Gcloud ignore file for Cloud Run deployment
+# Make sure .docs is NOT ignored (it contains the Excel data)
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.vscode/
+.idea/
+
+# Git
+.git/
+.gitignore
+
+# OS
+.DS_Store
+
+# Unnecessary files
+*.md
+*.log
+tests/
+
+# Explicitly include .docs by NOT listing it here

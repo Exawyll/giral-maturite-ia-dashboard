@@ -1,0 +1,42 @@
+# Cloud Build configuration for deploying to Cloud Run
+# Replace PROJECT_ID, REGION, and SERVICE_NAME with your values
+
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/maturite-ia-dashboard', '.']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/maturite-ia-dashboard']
+
+  # Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+      - 'run'
+      - 'deploy'
+      - 'maturite-ia-dashboard'
+      - '--image'
+      - 'gcr.io/$PROJECT_ID/maturite-ia-dashboard'
+      - '--region'
+      - 'europe-west1'
+      - '--platform'
+      - 'managed'
+      - '--allow-unauthenticated'
+      - '--memory'
+      - '512Mi'
+      - '--cpu'
+      - '1'
+      - '--min-instances'
+      - '0'
+      - '--max-instances'
+      - '10'
+      - '--timeout'
+      - '300'
+
+images:
+  - 'gcr.io/$PROJECT_ID/maturite-ia-dashboard'
+
+options:
+  logging: CLOUD_LOGGING_ONLY

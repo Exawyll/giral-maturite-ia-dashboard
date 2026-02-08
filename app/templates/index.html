@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GIRAL - Analyse Maturité IA</title>
+    <link rel="icon" href="https://giral.org/wp-content/uploads/2024/01/Essai-Logo4.png" type="image/png">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;600;700&family=Roboto+Slab:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #23d797;
+            --primary-dark: #1cb87f;
+            --secondary-color: #1a9e6d;
+            --accent-color: #17805a;
+            --bg-light: #f8fafb;
+            --text-dark: #2d3436;
+            --text-muted: #6c757d;
+        }
+        
+        body {
+            background-color: var(--bg-light);
+            font-family: 'Roboto', sans-serif;
+            color: var(--text-dark);
+        }
+        
+        h1, h2, h3, h4, h5, h6, .section-title {
+            font-family: 'Roboto Slab', serif;
+        }
+        
+        .navbar {
+            background: #ffffff;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+            padding: 0.5rem 0;
+        }
+        
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--text-dark) !important;
+            display: flex;
+            align-items: center;
+        }
+        
+        .navbar-brand img {
+            height: 45px;
+            margin-right: 12px;
+        }
+        
+        .navbar-title {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.1rem;
+            color: var(--text-dark);
+        }
+        
+        .navbar-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 12px 12px 0 0 !important;
+            font-weight: 600;
+            font-family: 'Roboto Slab', serif;
+        }
+        
+        .stat-card {
+            text-align: center;
+            padding: 1.5rem;
+        }
+        
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .stat-label {
+            color: #6c757d;
+            font-size: 0.9rem;
+        }
+        
+        .chart-container {
+            position: relative;
+            min-height: 350px;
+        }
+        
+        .filter-section {
+            background: white;
+            padding: 1rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .btn-primary {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .btn-primary:hover {
+            background-color: var(--accent-color);
+            border-color: var(--accent-color);
+        }
+        
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            border-color: var(--primary-color) var(--primary-color) #fff;
+            font-weight: 600;
+        }
+        
+        .theme-badge {
+            display: inline-block;
+            padding: 0.35em 0.65em;
+            font-size: 0.75em;
+            font-weight: 600;
+            border-radius: 0.375rem;
+            margin: 0.2rem;
+        }
+        
+        .theme-formation { background-color: #e3f2fd; color: #1565c0; }
+        .theme-budget { background-color: #fff3e0; color: #ef6c00; }
+        .theme-gouvernance { background-color: #f3e5f5; color: #7b1fa2; }
+        .theme-donnees { background-color: #e8f5e9; color: #2e7d32; }
+        .theme-technologie { background-color: #fce4ec; color: #c2185b; }
+        .theme-processus { background-color: #e0f7fa; color: #00838f; }
+        .theme-securite { background-color: #fff8e1; color: #f57f17; }
+        .theme-autres { background-color: #eceff1; color: #546e7a; }
+        
+        .response-item {
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid var(--secondary-color);
+        }
+        
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 200px;
+        }
+        
+        .correlation-high { color: #2e7d32; font-weight: 600; }
+        .correlation-medium { color: #f57c00; }
+        .correlation-low { color: #757575; }
+        
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--secondary-color);
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-light mb-4">
+        <div class="container">
+            <a class="navbar-brand" href="#">
+                <img src="https://giral.org/wp-content/uploads/2024/01/Essai-Logo4.png" alt="GIRAL">
+                <div>
+                    <div class="navbar-title">Maturité IA - DSI Agroalimentaires</div>
+                    <div class="navbar-subtitle">Analyse du questionnaire GIRAL</div>
+                </div>
+            </a>
+            <span class="navbar-text">
+                <span class="badge" style="background-color: var(--primary-color); color: white;">
+                    <i class="bi bi-graph-up me-1"></i> Dashboard
+                </span>
+            </span>
+        </div>
+    </nav>
+
+    <div class="container-fluid px-4">
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4" id="stats-cards">
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="total-responses">-</div>
+                    <div class="stat-label">Réponses totales</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="avg-maturity">-</div>
+                    <div class="stat-label">Maturité moyenne</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="best-axis">-</div>
+                    <div class="stat-label">Axe le plus mature</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card stat-card">
+                    <div class="stat-value" id="worst-axis">-</div>
+                    <div class="stat-label">Axe à améliorer</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <div class="row align-items-center">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Grouper par :</label>
+                    <select class="form-select" id="group-filter">
+                        <option value="groupe">Type d'entreprise</option>
+                        <option value="ca">Chiffre d'affaires</option>
+                        <option value="effectif">Effectif entreprise</option>
+                        <option value="effectif_dsi">Effectif DSI</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold">Vue :</label>
+                    <select class="form-select" id="view-type">
+                        <option value="moyenne">Moyennes</option>
+                        <option value="distribution">Distribution</option>
+                    </select>
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button class="btn btn-primary" onclick="refreshData()">
+                        <i class="bi bi-arrow-clockwise me-1"></i> Actualiser
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Charts Row -->
+        <div class="row g-4 mb-4">
+            <!-- Radar Chart - Global Maturity -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-radar me-2"></i>
+                        Vue Radar - Maturité Globale
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="radar-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bar Chart - By Group -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-bar-chart-fill me-2"></i>
+                        Comparaison par groupe
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="bar-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Distribution & Correlation Row -->
+        <div class="row g-4 mb-4">
+            <!-- Distribution Chart -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-pie-chart-fill me-2"></i>
+                        Distribution des niveaux par axe
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="distribution-chart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Correlation Heatmap -->
+            <div class="col-lg-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <i class="bi bi-grid-3x3 me-2"></i>
+                        Matrice de corrélation entre axes
+                    </div>
+                    <div class="card-body">
+                        <div id="correlation-heatmap" style="min-height: 350px;"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strong Correlations -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <i class="bi bi-link-45deg me-2"></i>
+                        Corrélations significatives identifiées
+                    </div>
+                    <div class="card-body">
+                        <div id="correlations-list" class="row g-3">
+                            <div class="loading">
+                                <div class="spinner-border text-secondary" role="status">
+                                    <span class="visually-hidden">Chargement...</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strengths & Weaknesses Section -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <h3 class="section-title">
+                    <i class="bi bi-list-check me-2"></i>
+                    Forces et Faiblesses par Axe
+                </h3>
+            </div>
+        </div>
+
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-header">
+                        <ul class="nav nav-tabs card-header-tabs" id="axesTabs" role="tablist">
+                            <!-- Tabs will be generated dynamically -->
+                        </ul>
+                    </div>
+                    <div class="card-body">
+                        <div class="tab-content" id="axesTabContent">
+                            <!-- Tab content will be generated dynamically -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer class="text-center py-4 mt-4" style="background-color: #f8fafb; border-top: 3px solid #23d797;">
+        <img src="https://giral.org/wp-content/uploads/2024/01/Essai-Logo4.png" alt="GIRAL" style="height: 40px; margin-bottom: 10px;">
+        <p class="mb-1" style="color: #6c757d; font-size: 0.9rem;">GIRAL - Groupe Indépendant de Réflexion Agroalimentaire</p>
+        <small style="color: #adb5bd;">&copy; 2026 - Analyse Maturité IA DSI Agroalimentaires</small>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Global variables
+        let radarChart, barChart, distributionChart;
+        let globalData = {};
+        let groupData = {};
+        let correlationData = {};
+        let strengthsData = {};
+
+        // Colors for charts - GIRAL branding
+        const colors = {
+            primary: 'rgba(35, 215, 151, 0.9)',
+            secondary: 'rgba(26, 158, 109, 0.8)',
+            accent: 'rgba(23, 128, 90, 0.8)',
+            palette: [
+                'rgba(35, 215, 151, 0.75)',
+                'rgba(26, 158, 109, 0.75)',
+                'rgba(23, 128, 90, 0.75)',
+                'rgba(45, 190, 140, 0.75)',
+                'rgba(55, 200, 155, 0.75)',
+                'rgba(70, 225, 170, 0.75)',
+                'rgba(30, 170, 120, 0.75)',
+                'rgba(20, 145, 100, 0.75)'
+            ],
+            levels: [
+                'rgba(239, 83, 80, 0.7)',   // N0 - Rouge
+                'rgba(255, 167, 38, 0.7)',  // N1 - Orange
+                'rgba(255, 238, 88, 0.7)',  // N2 - Jaune
+                'rgba(156, 204, 101, 0.7)', // N3 - Vert clair
+                'rgba(76, 175, 80, 0.7)'    // N4 - Vert
+            ]
+        };
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', async function() {
+            await loadAllData();
+            initializeCharts();
+            setupEventListeners();
+        });
+
+        async function loadAllData() {
+            try {
+                const [global, group, correlations, strengths] = await Promise.all([
+                    fetch('/api/stats/global').then(r => r.json()),
+                    fetch('/api/stats/by-group?group_by=groupe').then(r => r.json()),
+                    fetch('/api/correlations').then(r => r.json()),
+                    fetch('/api/strengths-weaknesses').then(r => r.json())
+                ]);
+
+                globalData = global;
+                groupData = group;
+                correlationData = correlations;
+                strengthsData = strengths;
+
+                updateStatsCards();
+                updateStrengthsWeaknesses();
+                updateCorrelationsList();
+
+            } catch (error) {
+                console.error('Error loading data:', error);
+            }
+        }
+
+        function updateStatsCards() {
+            document.getElementById('total-responses').textContent = globalData.total_responses || '-';
+
+            const axes = Object.keys(globalData.axes || {});
+            if (axes.length > 0) {
+                const moyennes = axes.map(a => globalData.axes[a].moyenne);
+                const avgMat = (moyennes.reduce((a, b) => a + b, 0) / moyennes.length).toFixed(1);
+                document.getElementById('avg-maturity').textContent = avgMat + '/4';
+
+                let maxIdx = moyennes.indexOf(Math.max(...moyennes));
+                let minIdx = moyennes.indexOf(Math.min(...moyennes));
+                document.getElementById('best-axis').textContent = axes[maxIdx];
+                document.getElementById('worst-axis').textContent = axes[minIdx];
+            }
+        }
+
+        function initializeCharts() {
+            initRadarChart();
+            initBarChart();
+            initDistributionChart();
+            initCorrelationHeatmap();
+        }
+
+        function initRadarChart() {
+            const ctx = document.getElementById('radar-chart').getContext('2d');
+            const axes = Object.keys(globalData.axes || {});
+            const values = axes.map(a => globalData.axes[a].moyenne);
+
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: axes,
+                    datasets: [{
+                        label: 'Maturité moyenne',
+                        data: values,
+                        fill: true,
+                        backgroundColor: 'rgba(35, 215, 151, 0.2)',
+                        borderColor: colors.primary,
+                        pointBackgroundColor: colors.primary,
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: colors.primary
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            beginAtZero: true,
+                            max: 4,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function initBarChart() {
+            const ctx = document.getElementById('bar-chart').getContext('2d');
+            const groups = Object.keys(groupData);
+            const axes = Object.keys(globalData.axes || {});
+
+            const datasets = groups.map((group, i) => ({
+                label: group.length > 30 ? group.substring(0, 30) + '...' : group,
+                data: axes.map(axe => groupData[group]?.axes?.[axe]?.moyenne || 0),
+                backgroundColor: colors.palette[i % colors.palette.length],
+                borderColor: colors.palette[i % colors.palette.length].replace('0.7', '1'),
+                borderWidth: 1
+            }));
+
+            barChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: axes, datasets: datasets },
+                options: {
+                    responsive: true,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 4,
+                            ticks: { stepSize: 1 }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function initDistributionChart() {
+            const ctx = document.getElementById('distribution-chart').getContext('2d');
+            const axes = Object.keys(globalData.axes || {});
+
+            const datasets = [0, 1, 2, 3, 4].map(level => ({
+                label: `N${level}`,
+                data: axes.map(axe => globalData.axes[axe]?.distribution?.[level] || 0),
+                backgroundColor: colors.levels[level]
+            }));
+
+            distributionChart = new Chart(ctx, {
+                type: 'bar',
+                data: { labels: axes, datasets: datasets },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { stacked: true },
+                        y: { stacked: true }
+                    },
+                    plugins: {
+                        legend: { position: 'bottom' }
+                    }
+                }
+            });
+        }
+
+        function initCorrelationHeatmap() {
+            if (!correlationData.matrix || !correlationData.labels) return;
+
+            const labels = correlationData.labels;
+            const zData = labels.map(l1 => labels.map(l2 => correlationData.matrix[l1]?.[l2] || 0));
+
+            const trace = {
+                z: zData,
+                x: labels,
+                y: labels,
+                type: 'heatmap',
+                colorscale: [
+                    [0, '#ef5350'],
+                    [0.5, '#ffffff'],
+                    [1, '#23d797']
+                ],
+                zmin: -1,
+                zmax: 1,
+                hoverongaps: false,
+                showscale: true
+            };
+
+            const layout = {
+                margin: { l: 100, r: 50, b: 100, t: 30 },
+                xaxis: { tickangle: -45 },
+                yaxis: { autorange: 'reversed' }
+            };
+
+            Plotly.newPlot('correlation-heatmap', [trace], layout, { responsive: true });
+        }
+
+        function updateCorrelationsList() {
+            const container = document.getElementById('correlations-list');
+            const correlations = correlationData.strong_correlations || [];
+
+            if (correlations.length === 0) {
+                container.innerHTML = '<div class="col-12 text-center text-muted">Aucune corrélation significative (> 0.5) identifiée</div>';
+                return;
+            }
+
+            container.innerHTML = correlations.map(c => `
+                <div class="col-md-4">
+                    <div class="card h-100">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">
+                                <span class="text-primary">${c.axe1}</span>
+                                <i class="bi bi-arrow-left-right mx-2"></i>
+                                <span class="text-primary">${c.axe2}</span>
+                            </h5>
+                            <p class="card-text">
+                                <span class="badge bg-${c.correlation > 0.7 ? 'success' : 'warning'} fs-5">
+                                    r = ${c.correlation.toFixed(2)}
+                                </span>
+                            </p>
+                            <small class="text-muted">
+                                ${c.correlation > 0.7 ? 'Corrélation forte' : 'Corrélation modérée'}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStrengthsWeaknesses() {
+            const tabsContainer = document.getElementById('axesTabs');
+            const contentContainer = document.getElementById('axesTabContent');
+            const axes = Object.keys(strengthsData);
+
+            // Generate tabs
+            tabsContainer.innerHTML = axes.map((axe, i) => `
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link ${i === 0 ? 'active' : ''}" 
+                            id="${axe.replace(/[^a-zA-Z]/g, '')}-tab" 
+                            data-bs-toggle="tab" 
+                            data-bs-target="#${axe.replace(/[^a-zA-Z]/g, '')}" 
+                            type="button" role="tab">
+                        ${axe}
+                    </button>
+                </li>
+            `).join('');
+
+            // Generate content
+            contentContainer.innerHTML = axes.map((axe, i) => {
+                const data = strengthsData[axe];
+                const forces = data.forces;
+                const faiblesses = data.faiblesses;
+
+                return `
+                    <div class="tab-pane fade ${i === 0 ? 'show active' : ''}" 
+                         id="${axe.replace(/[^a-zA-Z]/g, '')}" role="tabpanel">
+                        <h5 class="mb-3">${data.axe_complet}</h5>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-success"><i class="bi bi-check-circle me-1"></i> Forces (${forces.count})</h6>
+                                ${renderThemes(forces.themes, 'success')}
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-danger"><i class="bi bi-x-circle me-1"></i> Faiblesses (${faiblesses.count})</h6>
+                                ${renderThemes(faiblesses.themes, 'danger')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function renderThemes(themes, type) {
+            if (!themes || Object.keys(themes).length === 0) {
+                return '<p class="text-muted">Aucune réponse</p>';
+            }
+
+            const themeClasses = {
+                'Formation & Compétences': 'theme-formation',
+                'Budget & Coûts': 'theme-budget',
+                'Gouvernance & Organisation': 'theme-gouvernance',
+                'Données & Qualité': 'theme-donnees',
+                'Technologie & Outils': 'theme-technologie',
+                'Processus & Adoption': 'theme-processus',
+                'Sécurité & Conformité': 'theme-securite',
+                'Autres': 'theme-autres'
+            };
+
+            return Object.entries(themes).map(([theme, responses]) => `
+                <div class="mb-3">
+                    <span class="theme-badge ${themeClasses[theme] || 'theme-autres'}">
+                        ${theme} (${responses.length})
+                    </span>
+                    <div class="mt-2">
+                        ${responses.slice(0, 5).map(r => `
+                            <div class="response-item">${r}</div>
+                        `).join('')}
+                        ${responses.length > 5 ? `<small class="text-muted">+ ${responses.length - 5} autres réponses</small>` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function setupEventListeners() {
+            document.getElementById('group-filter').addEventListener('change', async function() {
+                const groupBy = this.value;
+                groupData = await fetch(`/api/stats/by-group?group_by=${groupBy}`).then(r => r.json());
+                updateBarChart();
+            });
+        }
+
+        function updateBarChart() {
+            const groups = Object.keys(groupData);
+            const axes = Object.keys(globalData.axes || {});
+
+            barChart.data.datasets = groups.map((group, i) => ({
+                label: group.length > 30 ? group.substring(0, 30) + '...' : group,
+                data: axes.map(axe => groupData[group]?.axes?.[axe]?.moyenne || 0),
+                backgroundColor: colors.palette[i % colors.palette.length],
+                borderColor: colors.palette[i % colors.palette.length].replace('0.7', '1'),
+                borderWidth: 1
+            }));
+
+            barChart.update();
+        }
+
+        async function refreshData() {
+            await loadAllData();
+            radarChart.destroy();
+            barChart.destroy();
+            distributionChart.destroy();
+            initializeCharts();
+        }
+    </script>
+</body>
+</html>
