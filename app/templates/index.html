@@ -567,9 +567,12 @@
 
         async function loadAllData() {
             try {
+                // Get current filter values
+                const groupBy = document.getElementById('group-filter')?.value || 'groupe';
+                
                 const [global, group, correlations, strengths] = await Promise.all([
                     fetch('/api/stats/global').then(r => r.json()),
-                    fetch('/api/stats/by-group?group_by=groupe').then(r => r.json()),
+                    fetch(`/api/stats/by-group?group_by=${groupBy}`).then(r => r.json()),
                     fetch('/api/correlations').then(r => r.json()),
                     fetch('/api/strengths-weaknesses').then(r => r.json())
                 ]);
@@ -649,20 +652,15 @@
 
         function initBarChart() {
             const ctx = document.getElementById('bar-chart').getContext('2d');
-            const groups = Object.keys(groupData);
             const axes = Object.keys(globalData.axes || {});
 
-            const datasets = groups.map((group, i) => ({
-                label: group.length > 30 ? group.substring(0, 30) + '...' : group,
-                data: axes.map(axe => groupData[group]?.axes?.[axe]?.moyenne || 0),
-                backgroundColor: colors.palette[i % colors.palette.length],
-                borderColor: colors.palette[i % colors.palette.length].replace('0.7', '1'),
-                borderWidth: 1
-            }));
-
+            // Initialize empty chart - will be populated by updateBarChart()
             barChart = new Chart(ctx, {
                 type: 'bar',
-                data: { labels: axes, datasets: datasets },
+                data: { 
+                    labels: axes, 
+                    datasets: [] 
+                },
                 options: {
                     responsive: true,
                     scales: {
@@ -670,6 +668,9 @@
                             beginAtZero: true,
                             max: 4,
                             ticks: { stepSize: 1 }
+                        },
+                        x: {
+                            stacked: false
                         }
                     },
                     plugins: {
@@ -677,6 +678,9 @@
                     }
                 }
             });
+            
+            // Populate with current view settings
+            updateBarChart();
         }
 
         function initDistributionChart() {
@@ -848,19 +852,59 @@
                 groupData = await fetch(`/api/stats/by-group?group_by=${groupBy}`).then(r => r.json());
                 updateBarChart();
             });
+            
+            document.getElementById('view-type').addEventListener('change', function() {
+                updateBarChart();
+            });
         }
 
         function updateBarChart() {
             const groups = Object.keys(groupData);
             const axes = Object.keys(globalData.axes || {});
+            const viewType = document.getElementById('view-type').value;
 
-            barChart.data.datasets = groups.map((group, i) => ({
-                label: group.length > 30 ? group.substring(0, 30) + '...' : group,
-                data: axes.map(axe => groupData[group]?.axes?.[axe]?.moyenne || 0),
-                backgroundColor: colors.palette[i % colors.palette.length],
-                borderColor: colors.palette[i % colors.palette.length].replace('0.7', '1'),
-                borderWidth: 1
-            }));
+            if (viewType === 'moyenne') {
+                // Display averages by group
+                barChart.data.datasets = groups.map((group, i) => ({
+                    label: group.length > 30 ? group.substring(0, 30) + '...' : group,
+                    data: axes.map(axe => groupData[group]?.axes?.[axe]?.moyenne || 0),
+                    backgroundColor: colors.palette[i % colors.palette.length],
+                    borderColor: colors.palette[i % colors.palette.length].replace('0.7', '1'),
+                    borderWidth: 1
+                }));
+                
+                barChart.options.scales.y.max = 4;
+                barChart.options.scales.y.ticks.stepSize = 1;
+                barChart.options.scales.x.stacked = false;
+                barChart.options.scales.y.stacked = false;
+                
+            } else {
+                // Display distribution by level
+                const allDistributions = {};
+                
+                // Aggregate distributions across all groups for each axis
+                axes.forEach(axe => {
+                    allDistributions[axe] = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 };
+                    groups.forEach(group => {
+                        const dist = groupData[group]?.axes?.[axe]?.distribution || {};
+                        for (let level = 0; level <= 4; level++) {
+                            allDistributions[axe][level] += dist[level] || 0;
+                        }
+                    });
+                });
+                
+                // Create datasets for each level (N0 to N4)
+                barChart.data.datasets = [0, 1, 2, 3, 4].map(level => ({
+                    label: `N${level}`,
+                    data: axes.map(axe => allDistributions[axe][level] || 0),
+                    backgroundColor: colors.levels[level]
+                }));
+                
+                barChart.options.scales.y.max = undefined;
+                barChart.options.scales.y.ticks.stepSize = undefined;
+                barChart.options.scales.x.stacked = true;
+                barChart.options.scales.y.stacked = true;
+            }
 
             barChart.update();
         }
