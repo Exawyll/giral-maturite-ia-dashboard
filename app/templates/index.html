@@ -170,6 +170,106 @@
             padding-bottom: 0.5rem;
             border-bottom: 2px solid var(--secondary-color);
         }
+        
+        /* Styles pour les infobulles */
+        .info-tooltip {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 18px;
+            height: 18px;
+            background-color: var(--text-muted);
+            color: white;
+            border-radius: 50%;
+            font-size: 0.65rem;
+            font-weight: 600;
+            cursor: help;
+            margin-left: 6px;
+            transition: all 0.2s ease;
+            vertical-align: middle;
+        }
+        
+        .info-tooltip:hover {
+            background-color: var(--primary-color);
+            transform: scale(1.1);
+        }
+        
+        .info-tooltip .tooltip-content {
+            visibility: hidden;
+            opacity: 0;
+            position: absolute;
+            bottom: calc(100% + 10px);
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #2d3436;
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 400;
+            font-family: 'Roboto', sans-serif;
+            line-height: 1.5;
+            width: 280px;
+            text-align: left;
+            z-index: 1000;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+            transition: all 0.25s ease;
+        }
+        
+        .info-tooltip .tooltip-content::after {
+            content: '';
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 8px solid transparent;
+            border-top-color: #2d3436;
+        }
+        
+        .info-tooltip:hover .tooltip-content {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .card-header .info-tooltip {
+            background-color: rgba(255, 255, 255, 0.3);
+            margin-left: 8px;
+        }
+        
+        .card-header .info-tooltip:hover {
+            background-color: rgba(255, 255, 255, 0.5);
+        }
+        
+        .stat-card .info-tooltip {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        
+        .stat-card {
+            position: relative;
+        }
+        
+        .tooltip-title {
+            font-weight: 600;
+            color: var(--primary-color);
+            margin-bottom: 6px;
+            display: block;
+        }
+        
+        /* Ajustement pour tooltip à gauche si proche du bord droit */
+        .info-tooltip.tooltip-left .tooltip-content {
+            left: auto;
+            right: 0;
+            transform: none;
+        }
+        
+        .info-tooltip.tooltip-left .tooltip-content::after {
+            left: auto;
+            right: 15px;
+            transform: none;
+        }
     </style>
 </head>
 <body>
@@ -195,24 +295,48 @@
         <div class="row g-4 mb-4" id="stats-cards">
             <div class="col-md-3">
                 <div class="card stat-card">
+                    <span class="info-tooltip tooltip-left">?
+                        <span class="tooltip-content">
+                            <span class="tooltip-title">Réponses totales</span>
+                            Nombre total d'entreprises ayant complété le questionnaire de maturité IA. Chaque réponse représente une entreprise unique du secteur agroalimentaire.
+                        </span>
+                    </span>
                     <div class="stat-value" id="total-responses">-</div>
                     <div class="stat-label">Réponses totales</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card stat-card">
+                    <span class="info-tooltip tooltip-left">?
+                        <span class="tooltip-content">
+                            <span class="tooltip-title">Maturité moyenne</span>
+                            Score moyen calculé sur l'ensemble des 5 axes de maturité (0 à 4). La moyenne arithmétique de tous les scores par axe donne cet indicateur global de maturité IA.
+                        </span>
+                    </span>
                     <div class="stat-value" id="avg-maturity">-</div>
                     <div class="stat-label">Maturité moyenne</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card stat-card">
+                    <span class="info-tooltip tooltip-left">?
+                        <span class="tooltip-content">
+                            <span class="tooltip-title">Axe le plus mature</span>
+                            Axe ayant obtenu la moyenne la plus élevée parmi toutes les réponses. Identifie le domaine où les DSI agroalimentaires sont les plus avancés en matière d'IA.
+                        </span>
+                    </span>
                     <div class="stat-value" id="best-axis">-</div>
                     <div class="stat-label">Axe le plus mature</div>
                 </div>
             </div>
             <div class="col-md-3">
                 <div class="card stat-card">
+                    <span class="info-tooltip tooltip-left">?
+                        <span class="tooltip-content">
+                            <span class="tooltip-title">Axe à améliorer</span>
+                            Axe présentant la moyenne la plus basse. Met en évidence le domaine prioritaire nécessitant des efforts d'amélioration pour les entreprises du secteur.
+                        </span>
+                    </span>
                     <div class="stat-value" id="worst-axis">-</div>
                     <div class="stat-label">Axe à améliorer</div>
                 </div>
@@ -251,9 +375,15 @@
             <!-- Radar Chart - Global Maturity -->
             <div class="col-lg-6">
                 <div class="card h-100">
-                    <div class="card-header">
+                    <div class="card-header d-flex align-items-center">
                         <i class="bi bi-radar me-2"></i>
                         Vue Radar - Maturité Globale
+                        <span class="info-tooltip">?
+                            <span class="tooltip-content">
+                                <span class="tooltip-title">Vue Radar</span>
+                                Représentation visuelle de la maturité moyenne sur chacun des 5 axes. Chaque branche correspond à un axe (échelle 0-4). Plus la surface couverte est grande, plus la maturité globale est élevée.
+                            </span>
+                        </span>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -266,9 +396,15 @@
             <!-- Bar Chart - By Group -->
             <div class="col-lg-6">
                 <div class="card h-100">
-                    <div class="card-header">
+                    <div class="card-header d-flex align-items-center">
                         <i class="bi bi-bar-chart-fill me-2"></i>
                         Comparaison par groupe
+                        <span class="info-tooltip">?
+                            <span class="tooltip-content">
+                                <span class="tooltip-title">Comparaison par groupe</span>
+                                Comparaison des scores moyens par axe selon le critère de regroupement sélectionné (type d'entreprise, CA, effectif...). Permet d'identifier les écarts de maturité entre différents profils.
+                            </span>
+                        </span>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -284,9 +420,15 @@
             <!-- Distribution Chart -->
             <div class="col-lg-6">
                 <div class="card h-100">
-                    <div class="card-header">
+                    <div class="card-header d-flex align-items-center">
                         <i class="bi bi-pie-chart-fill me-2"></i>
                         Distribution des niveaux par axe
+                        <span class="info-tooltip">?
+                            <span class="tooltip-content">
+                                <span class="tooltip-title">Distribution des niveaux</span>
+                                Répartition des réponses par niveau de maturité (N0 à N4) pour chaque axe. Affiche le nombre d'entreprises à chaque niveau. Utile pour voir la dispersion des niveaux au-delà de la moyenne.
+                            </span>
+                        </span>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -299,9 +441,15 @@
             <!-- Correlation Heatmap -->
             <div class="col-lg-6">
                 <div class="card h-100">
-                    <div class="card-header">
+                    <div class="card-header d-flex align-items-center">
                         <i class="bi bi-grid-3x3 me-2"></i>
                         Matrice de corrélation entre axes
+                        <span class="info-tooltip">?
+                            <span class="tooltip-content">
+                                <span class="tooltip-title">Matrice de corrélation</span>
+                                Coefficient de Pearson entre chaque paire d'axes (-1 à +1). Vert = corrélation positive (axes progressent ensemble). Rouge = corrélation négative. Blanc = pas de lien. Calculé sur l'ensemble des réponses.
+                            </span>
+                        </span>
                     </div>
                     <div class="card-body">
                         <div id="correlation-heatmap" style="min-height: 350px;"></div>
@@ -314,9 +462,15 @@
         <div class="row g-4 mb-4">
             <div class="col-12">
                 <div class="card">
-                    <div class="card-header">
+                    <div class="card-header d-flex align-items-center">
                         <i class="bi bi-link-45deg me-2"></i>
                         Corrélations significatives identifiées
+                        <span class="info-tooltip">?
+                            <span class="tooltip-content">
+                                <span class="tooltip-title">Corrélations significatives</span>
+                                Liste des paires d'axes ayant un coefficient de corrélation supérieur à 0.5. r > 0.7 = corrélation forte, 0.5 < r ≤ 0.7 = corrélation modérée. Indique quels axes évoluent conjointement.
+                            </span>
+                        </span>
                     </div>
                     <div class="card-body">
                         <div id="correlations-list" class="row g-3">
@@ -334,9 +488,15 @@
         <!-- Strengths & Weaknesses Section -->
         <div class="row mb-4">
             <div class="col-12">
-                <h3 class="section-title">
+                <h3 class="section-title d-flex align-items-center">
                     <i class="bi bi-list-check me-2"></i>
                     Forces et Faiblesses par Axe
+                    <span class="info-tooltip">?
+                        <span class="tooltip-content">
+                            <span class="tooltip-title">Forces et Faiblesses</span>
+                            Analyse qualitative des réponses textuelles. Les forces sont les points positifs mentionnés (niveaux N3-N4), les faiblesses les points à améliorer (niveaux N0-N1). Classées par thématique automatiquement.
+                        </span>
+                    </span>
                 </h3>
             </div>
         </div>
